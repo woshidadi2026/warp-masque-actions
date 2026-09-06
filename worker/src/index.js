@@ -17,7 +17,7 @@ import {
 } from "./auth.js";
 
 const K_WARP = "warp:device";     // WARP 注册信息，长期复用
-const K_CFG = "config:yaml";      // 生成好的配置
+const K_CFG = "config:yaml";      // 聚合配置（套娃线路 + WARP 直连）
 const K_STATE = "state:meta";     // 状态元数据，给 UI 用
 const K_CRED = "auth:cred";       // 密码哈希 + 盐
 const K_SET = "settings";         // 订阅路径等设置
@@ -50,7 +50,8 @@ const html = (body, s = 200) =>
 const notFound = () => new Response("Not Found", { status: 404 });
 
 async function getSettings(env) {
-  return (await env.KV.get(K_SET, "json")) || { subPath: DEFAULT_SUB };
+  const s = (await env.KV.get(K_SET, "json")) || {};
+  return { subPath: s.subPath || DEFAULT_SUB };
 }
 
 /** 拿 WARP 设备信息，KV 里有就复用，没有才注册。 */
@@ -172,7 +173,7 @@ export default {
     }
 
     const settings = await getSettings(env);
-    const subPath = "/" + (settings.subPath || DEFAULT_SUB);
+    const subPath = "/" + settings.subPath;
 
     // ---- 订阅。客户端带不了 cookie，用 ?token= ----
     if (path === subPath) {
@@ -187,7 +188,8 @@ export default {
       return new Response(yaml, {
         headers: {
           "content-type": "text/yaml; charset=utf-8",
-          "content-disposition": 'attachment; filename="opera-masque.yaml"',
+          // 文件名不加引号：部分客户端不解析引号，会把 \"x\" 当成文件名的一部分
+          "content-disposition": "attachment; filename=opera-masque.yaml",
           "profile-update-interval": "4",
           "cache-control": "no-store",
         },

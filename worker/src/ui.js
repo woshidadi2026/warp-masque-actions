@@ -298,8 +298,14 @@ export function renderUI(state, host, sp, token, cred) {
       <div class="sec-t">订阅</div>
       <div class="sub">
         <input id="u" value="${sub}" readonly>
-        <button onclick="cp()">复制</button>
+        <button onclick="cp('u')">复制</button>
         <button class="gh" onclick="location.href=document.getElementById('u').value">下载</button>
+      </div>
+      <div class="note">
+        一份聚合，导进去有两类线路可切：<br>
+        <b>亚洲/欧洲/美洲线路</b> — 走 MASQUE 再落 Opera，能换出口国家，但多一跳会慢些。<br>
+        <b>WARP直连</b> — 只走 MASQUE，出口是 Cloudflare 自己的 IP，快但选不了国家。<br>
+        套娃线路超时或落地挂了，切 WARP直连顶上。
       </div>
       <div id="msg"></div>
     </div>
@@ -310,6 +316,7 @@ export function renderUI(state, host, sp, token, cred) {
         <div class="cell"><div class="n">${stat.combos ?? "—"}</div><div class="l">组合节点</div></div>
         <div class="cell"><div class="n">${stat.entries ?? "—"}</div><div class="l">MASQUE 接入点</div></div>
         <div class="cell"><div class="n">${stat.landings ?? "—"}</div><div class="l">Opera 落地</div></div>
+        <div class="cell"><div class="n">${stat.entries ?? "—"}</div><div class="l">WARP 直连</div></div>
       </div>
       <div class="note">
         每个落地和每个接入点都组合一遍，任一环失效都还有别的路走。<br>
@@ -348,7 +355,7 @@ export function renderUI(state, host, sp, token, cred) {
       <div class="sub">
         <input id="sp" value="${sp.replace(/^\//, "")}" spellcheck="false"
                placeholder="字母数字和 - _">
-        <button onclick="setPath()">保存</button>
+        <button onclick="setPath('sp')">保存</button>
       </div>
       <div class="note">
         改成难猜的字符串，等于在密码之外多一层。改完上面的订阅链接要重新复制。
@@ -374,7 +381,7 @@ export function renderUI(state, host, sp, token, cred) {
       <div class="note">
         必须用 <b>mihomo Alpha</b> 内核，masque 出站和 dialer-proxy 稳定版都不支持。<br>
         可用客户端：Clash Verge Rev（内核切 Alpha）、ClashMi、FlClash。<br>
-        Shadowrocket、Stash 不认 dialer-proxy。<br>
+        Shadowrocket、Stash 不认 dialer-proxy，导进去只有 WARP直连 那组能用。<br>
         订阅链接里的 token 就是访问凭证，<b>别外传</b>，泄露了改密码即可全部失效。<br>
         配置里的 private-key 等同 WARP 账号凭据。<br>
         免费代理的流量对提供方可见，别走支付和敏感数据。
@@ -389,8 +396,8 @@ export function renderUI(state, host, sp, token, cred) {
   </div>
 </div>
 <script>
-function cp(){
-  const el=document.getElementById('u');
+function cp(id){
+  const el=document.getElementById(id||'u');
   navigator.clipboard.writeText(el.value).then(
     ()=>say('已复制到剪贴板','var(--mint)'),
     ()=>{el.select();document.execCommand('copy');say('已复制','var(--mint)')});
@@ -412,8 +419,8 @@ async function post(url,body,okmsg){
     else{say('失败: '+j.error,'var(--red)');bs.forEach(b=>b.disabled=false);}
   }catch(e){say('失败: '+e.message,'var(--red)');bs.forEach(b=>b.disabled=false);}
 }
-function setPath(){
-  const v=document.getElementById('sp').value.trim();
+function setPath(id){
+  const v=document.getElementById(id||'sp').value.trim();
   if(!v){say('路径不能为空','var(--red)');return;}
   post('/api/sub-path',{path:v},'已保存');
 }
